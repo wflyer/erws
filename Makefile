@@ -1,7 +1,10 @@
 NAME=erws
 
-all: compile release
+all: deps compile release
 	./rebar compile
+
+deps:
+	./rebar get-deps
 
 compile:
 	./rebar compile
