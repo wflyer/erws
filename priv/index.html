@@ -1,13 +1,12 @@
 <!DOCTYPE HTML>
 <html>
 <head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
 <script type="text/javascript">
 var ws = new Object;
-
 function send()
 {
-    ws.send("hi!");
-    console.log('sent');
+    ws.send(document.getElementById('msgbox').value);
 }
 
 function open()
@@ -25,8 +24,11 @@ function open()
     {
         var received_msg = evt.data;
         console.log("Received: " + received_msg);
-        var txt = document.createTextNode("Got from server: " + received_msg);
-        document.getElementById('messages').appendChild(txt);
+
+        node = document.createElement("LI");
+        node.appendChild(document.createTextNode(received_msg));
+        var msgnode = document.getElementById('messages');
+        msgnode.insertBefore(node, msgnode.firstChild);
     };
     ws.onclose = function()
     {
@@ -36,12 +38,18 @@ function open()
 }
 </script>
 </head>
-<body>
-<div id="sse">
-   <a href="javascript:open()">Open WebSocket</a><br/>
-   <a href="javascript:send()">Send hi</a>
-</div>
+<body onload="javascript:open()">
+<input type="text" id="msgbox" />
 <div id="messages">
 </div>
+
+
+<script>
+$("#msgbox").keyup(function(event){
+    if(event.keyCode == 13){
+        send();
+    }
+});
+</script>
 </body>
 </html>

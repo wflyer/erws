@@ -4,5 +4,7 @@
     {registered, []},
     {applications, [kernel,stdlib,crypto,cowboy,compiler,lager,syntax_tools]},
     {mod, { erws_app, []}},
-    {env, []}
+    {env, [
+        {web_port, 8000}
+    ]}
 ]}.

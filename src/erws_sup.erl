@@ -23,6 +23,18 @@ start_link() ->
 %% Supervisor callbacks
 %% ===================================================================
 
-init([]) ->
-    {ok, { {one_for_one, 5, 10}, []} }.
+%% child_spec() = #{id => child_id(),
+%%                  start => mfargs(),
+%%                  restart => restart(),
+%%                  shutdown => shutdown(),
+%%                  type => worker(),
+%%                  modules => modules()}
 
+init([]) ->
+    ChildSpec = #{
+        id => erws_mgr,
+        start => {erws_mgr, start_link, []},
+        restart => permanent,
+        shutdown => brutal_kill,
+        type => worker},
+    {ok, { {one_for_one, 5, 10}, [ChildSpec]} }.
