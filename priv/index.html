@@ -1,55 +1,190 @@
-<!DOCTYPE HTML>
+<!doctype html>
 <html>
-<head>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
-<script type="text/javascript">
-var ws = new Object;
-function send()
-{
-    ws.send(document.getElementById('msgbox').value);
-}
-
-function open()
-{
-    if (!("WebSocket" in window)) {
-        alert("WebSocket NOT supported by your Browser!");
-        return;
+  <head>
+    <meta charset="utf-8" />
+    <title>React tutorial</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.2/react-with-addons.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.2/react-dom.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.33/browser.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css"/>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.0.4/js.cookie.min.js"></script> -->
+    <style type="text/css">
+    html, body, .chatbox, .container{
+      height:100%;
     }
-    console.log('open');
-    ws = new WebSocket("ws://"+window.location.host+"/websocket");
-    ws.onopen = function() {
-        console.log('connected');
-    };
-    ws.onmessage = function (evt)
-    {
-        var received_msg = evt.data;
-        console.log("Received: " + received_msg);
 
-        node = document.createElement("LI");
-        node.appendChild(document.createTextNode(received_msg));
-        var msgnode = document.getElementById('messages');
-        msgnode.insertBefore(node, msgnode.firstChild);
-    };
-    ws.onclose = function()
-    {
-        // websocket is closed.
-        console.log('close');
-    };
-}
-</script>
-</head>
-<body onload="javascript:open()">
-<input type="text" id="msgbox" />
-<div id="messages">
-</div>
-
-
-<script>
-$("#msgbox").keyup(function(event){
-    if(event.keyCode == 13){
-        send();
+    .footer {
+      position: absolute;
+      bottom: 0;
+      left: auto;
+      right: auto;
+      max-width:980px;
+      width:100%;
+      height: 40px;
+      margin-top: 40px;
     }
+
+    .history {
+      max-height:95%;
+      overflow-y:scroll;
+    }
+
+    ul {
+      list-style-type: none;
+    }
+    </style>
+    <script type="text/babel">
+
+var Chat = React.createClass({
+    send: function(msg) {
+        this.ws.send(msg);
+    },
+    open: function() {
+        var chat = this;
+
+        if (!("WebSocket" in window)) {
+            alert("WebSocket NOT supported by your Browser!");
+            return;
+        }
+        console.log('open');
+        //this.ws = new WebSocket("this.ws://"+window.location.host+"/websocket");
+        this.ws = new WebSocket("ws://localhost:8000/websocket");
+        this.ws.onopen = function() {
+            console.log('connected');
+        };
+        this.ws.onmessage = function (evt)
+        {
+            var received_msg = evt.data;
+            console.log(received_msg);
+            chat.setMsg(received_msg);
+        };
+        this.ws.onclose = function()
+        {
+            // websocket is closed.
+            console.log('close');
+        };
+    },
+
+    setMsg: function(text) {
+    var newMessage = {
+      from: this.state.nickname,
+      message: text,
+    };
+
+    this.setState({
+      messages: this.state.messages.concat([newMessage])
+    });
+    this.refs.history.scrollTop = this.refs.history.scrollHeight;
+  },
+  nextStart: 0,
+  getInitialState: function() {
+    this.nextStart = 0;
+      return {
+        nickname: "Welcome!",
+        messages: []
+      }
+  },
+  componentDidMount: function() {
+    var ws = new Object;
+    this.open();
+  },
+  fetchMessage: function() {
+    setTimeout(() => {
+      $.ajax({
+        url: "/read",
+        method: "GET",
+        cache: false,
+        data: {
+          start: this.nextStart,
+        },
+        dataType: "json",
+        success: function(data) {
+          this.nextStart = data.nextStart;
+          var messages = this.state.messages.concat(data.messages).filter(function(message) {
+            return message.id;
+          });
+          this.setState({
+            messages: messages,
+          });
+          this.fetchMessage();
+        }.bind(this),
+        error: function(xhr) {
+          this.fetchMessage();
+        }.bind(this)
+      });
+    }, 500);
+  },
+  onSubmit: function(text) {
+    this.send(text);
+    var newMessage = {
+      from: this.state.nickname,
+      message: text,
+    };
+  },
+  render: function() {
+    var messagesView = this.state.messages.map(function(message, idx) {
+      return (
+        <li key={idx}>
+          <div className="row">
+            <div className="col-md-12">
+               <p>{message.message}</p>
+            </div>
+          </div>
+        </li>);
+    });
+    return (
+      <div className="chatbox">
+        <div className="history" ref="history">
+          <ul>
+            {messagesView}
+          </ul>
+        </div>
+        <div className="footer form-group">
+          <MessageForm onSubmit={this.onSubmit} nickname={this.state.nickname} />
+        </div>
+      </div>
+    );
+  }
 });
-</script>
-</body>
+
+var MessageForm = React.createClass({
+  getInitialState: function() {
+    return {message: ""};
+  },
+  onChange: function(e) {
+    this.setState({message: e.target.value});
+  },
+  onSubmit: function(e) {
+    e.preventDefault();
+    var input = this.refs.messageInput;
+    this.setState({message: ""});
+    this.props.onSubmit(input.value);
+  },
+  render: function() {
+    return (
+      <form onSubmit={this.onSubmit}>
+        <div className="input-group">
+          <span className="input-group-addon" id="sizing-addon1">{this.props.nickname}</span>
+          <input className="form-control" type="text" onChange={this.onChange} value={this.state.message} ref="messageInput"/>
+          <span className="input-group-btn">
+            <button className="btn btn-primary form-control" type="submit">Send</button>
+          </span>
+        </div>
+      </form>
+    );
+  }
+});
+
+ReactDOM.render(
+  <Chat />,
+  document.getElementById('container')
+);
+    </script>
+  </head>
+  <body>
+    <div id="container" class="container">
+    </div>
+  </body>
 </html>

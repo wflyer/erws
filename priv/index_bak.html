@@ -1,0 +1,55 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+<script type="text/javascript">
+var ws = new Object;
+function send()
+{
+    ws.send(document.getElementById('msgbox').value);
+}
+
+function open()
+{
+    if (!("WebSocket" in window)) {
+        alert("WebSocket NOT supported by your Browser!");
+        return;
+    }
+    console.log('open');
+    ws = new WebSocket("ws://"+window.location.host+"/websocket");
+    ws.onopen = function() {
+        console.log('connected');
+    };
+    ws.onmessage = function (evt)
+    {
+        var received_msg = evt.data;
+        console.log("Received: " + received_msg);
+
+        node = document.createElement("LI");
+        node.appendChild(document.createTextNode(received_msg));
+        var msgnode = document.getElementById('messages');
+        msgnode.insertBefore(node, msgnode.firstChild);
+    };
+    ws.onclose = function()
+    {
+        // websocket is closed.
+        console.log('close');
+    };
+}
+</script>
+</head>
+<body onload="javascript:open()">
+<input type="text" id="msgbox" />
+<div id="messages">
+</div>
+
+
+<script>
+$("#msgbox").keyup(function(event){
+    if(event.keyCode == 13){
+        send();
+    }
+});
+</script>
+</body>
+</html>
